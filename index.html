@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ton résultat arrive - RÉVÈLE TON EMPREINTE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #21303F;
+            color: #FFFFFF;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 600px;
+            text-align: center;
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 32px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #FFFFFF;
+            line-height: 1.2;
+        }
+
+        p {
+            font-size: 18px;
+            margin-bottom: 24px;
+            color: #f3e6de;
+            line-height: 1.8;
+        }
+
+        .highlight {
+            color: #cfa45a;
+            font-weight: 600;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #c24a4e;
+            color: #FFFFFF;
+            padding: 16px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-top: 32px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(194, 74, 78, 0.3);
+        }
+
+        .cta-button:hover {
+            background: #a83e41;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(194, 74, 78, 0.4);
+        }
+
+        .divider {
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #cfa45a, transparent);
+            margin: 40px auto;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 26px;
+            }
+            
+            p {
+                font-size: 16px;
+            }
+
+            .cta-button {
+                padding: 14px 32px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">✨</div>
+        
+        <h1>Ton résultat arrive dans quelques minutes.</h1>
+        
+        <div class="divider"></div>
+        
+        <p>Pendant que tu attends —</p>
+        
+        <p><strong>Écoute Le Téléphone du Cœur.</strong></p>
+        
+        <p class="highlight">Il y a quelque chose dedans pour toi.</p>
+        
+        <a href="https://podcast.ausha.co/le-telephone-du-coeur" class="cta-button" target="_blank">
+            Écouter le podcast →
+        </a>
+    </div>
+</body>
+</html>
