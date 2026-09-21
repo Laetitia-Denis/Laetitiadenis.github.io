@@ -26,10 +26,10 @@ Ouvre `app/config.js` et remplace :
 ```js
 export const SUPABASE_URL = "https://xxxxx.supabase.co";
 export const SUPABASE_ANON_KEY = "eyJ...";
-export const CALENDLY_URL = "https://calendly.com/ton-lien";
+export const BOOKING_URL = "https://cal.com/ton-lien"; // ou Calendly, Resalib, mailto:..., peu importe l'outil
 ```
 
-`CALENDLY_URL` est le lien vers ta page de prise de rendez-vous — il alimente le bouton "Réserver un rendez-vous" de l'onglet Soutien. Sans lien Calendly, ce n'est pas bloquant : le bouton reste simplement masqué.
+`BOOKING_URL` est le lien vers ta page de prise de rendez-vous — il alimente le bouton "Réserver un rendez-vous" de l'onglet Soutien, quel que soit l'outil derrière (Calendly, Cal.com, Resalib tant qu'il tient, ou même un `mailto:`). Sans lien renseigné, ce n'est pas bloquant : le bouton reste simplement masqué.
 
 ### Publier une actualité (retraite, atelier, live)
 

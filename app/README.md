@@ -10,7 +10,7 @@ Une app qui t'aide chaque jour à voir clair : elle prend ton humeur, ton sport,
 4. **Onglet Soutien, 3 façons de répondre à un besoin** :
    - **🎧 Audio guidé** — 5 séances d'hypnose complètes (stress, lâcher-prise, confiance, sommeil, énergie), stockées en base donc modifiables sans redéployer.
    - **⚡ Coup de boost** — version express (2-3 min) du même besoin, pour quand il n'y a pas le temps d'une séance complète (`app/boostContent.js`).
-   - **📅 Entretien** — renvoie vers ton lien Calendly pour un vrai rendez-vous de coaching en visio (`CALENDLY_URL` dans `app/config.js`).
+   - **📅 Entretien** — renvoie vers ton lien de prise de rendez-vous (Calendly, Cal.com, ou autre) pour un vrai rendez-vous de coaching en visio (`BOOKING_URL` dans `app/config.js`).
    - Toujours disponibles en dessous : renvoi vers tes ressources existantes (podcast...), et un rappel simple si ce n'est pas le moment.
 5. **Onglet Actualités** — retraites, ateliers, lives : gère ce contenu directement dans la table `news_posts` via le Table Editor Supabase, sans toucher au code. Un événement daté et à venir s'affiche aussi en bandeau "Prochain live" sur l'onglet Aujourd'hui.
 6. **Historique** — 14 derniers jours, score de tension, besoin détecté chaque jour.

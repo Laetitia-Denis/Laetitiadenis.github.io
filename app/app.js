@@ -2,7 +2,7 @@ import { isConfigured, loadError } from "./supabaseClient.js";
 import { localAdapter } from "./localAdapter.js";
 import { supabaseAdapter } from "./supabaseAdapter.js";
 import { computeAssessment, computeTensionStreak, MOOD_TAGS } from "./needsEngine.js";
-import { NEED_LABELS, HYPNOSIS_CATEGORY_LABELS, EXTERNAL_RESOURCES, CALENDLY_URL } from "./config.js";
+import { NEED_LABELS, HYPNOSIS_CATEGORY_LABELS, EXTERNAL_RESOURCES, BOOKING_URL } from "./config.js";
 import { pickMantra } from "./mantras.js";
 import { boostFor } from "./boostContent.js";
 import { wordFrequency } from "./insightsEngine.js";
@@ -698,15 +698,15 @@ function renderSupportModeContent(category) {
   }
 
   if (state.supportMode === "rdv") {
-    const calendlyReady = CALENDLY_URL && !CALENDLY_URL.startsWith("REMPLACE_MOI");
+    const bookingReady = BOOKING_URL && !BOOKING_URL.startsWith("REMPLACE_MOI");
     return `
       <div class="card">
         <h3>Un vrai échange, en visio</h3>
         <p>Parfois, la meilleure séance, c'est d'en parler directement. Réserve un rendez-vous de coaching en visio avec moi.</p>
         ${
-          calendlyReady
-            ? `<a class="btn-primary btn-block" id="calendly-link" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:14px;">Réserver un rendez-vous</a>`
-            : `<p class="muted" style="margin-top:10px;">Lien Calendly à configurer dans <code>app/config.js</code> (CALENDLY_URL).</p>`
+          bookingReady
+            ? `<a class="btn-primary btn-block" id="booking-link" href="${BOOKING_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:14px;">Réserver un rendez-vous</a>`
+            : `<p class="muted" style="margin-top:10px;">Lien de réservation à configurer dans <code>app/config.js</code> (BOOKING_URL).</p>`
         }
       </div>
     `;
@@ -741,7 +741,7 @@ function attachHypnosisListeners() {
     await logSession(null, "boost");
     alert("Bravo, un petit geste qui compte. 🤍");
   });
-  document.getElementById("calendly-link")?.addEventListener("click", () => {
+  document.getElementById("booking-link")?.addEventListener("click", () => {
     logSession(null, "rdv");
   });
   document.getElementById("snooze-btn")?.addEventListener("click", handleSnooze);
