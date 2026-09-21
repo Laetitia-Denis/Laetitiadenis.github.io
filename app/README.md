@@ -5,12 +5,15 @@ Une app qui t'aide chaque jour à voir clair : elle prend ton humeur, ton sport,
 ## Ce qu'elle fait
 
 1. **Check-in quotidien** — humeur, énergie, stress, sommeil, sport, alimentation, journal libre, intention pour demain.
-2. **Moteur de besoins** — règles transparentes (`app/needsEngine.js`), pas de boîte noire : détecte si tu as besoin de bouger, de mieux manger, de dormir, d'un ancrage... ou d'une séance d'hypnose.
-3. **Hypnose, 3 modes au choix** :
-   - **Script guidé intégré** — 5 séances écrites (stress, lâcher-prise, confiance, sommeil, énergie), lisibles immédiatement, stockées en base donc modifiables sans redéployer.
-   - **Renvoi vers tes ressources** — podcast, épisodes ciblés (configurable dans `app/config.js`).
-   - **Rappel simple** — tu reportes, l'app garde la trace.
-4. **Historique** — 14 derniers jours, score de tension, besoin détecté chaque jour.
+2. **Mantra du jour** — dès que tu sélectionnes une humeur, un mantra dédié apparaît (`app/mantras.js`), stable toute la journée.
+3. **Moteur de besoins** — règles transparentes (`app/needsEngine.js`), pas de boîte noire : détecte si tu as besoin de bouger, de mieux manger, de dormir, d'un ancrage... ou d'une séance d'hypnose.
+4. **Onglet Soutien, 3 façons de répondre à un besoin** :
+   - **🎧 Audio guidé** — 5 séances d'hypnose complètes (stress, lâcher-prise, confiance, sommeil, énergie), stockées en base donc modifiables sans redéployer.
+   - **⚡ Coup de boost** — version express (2-3 min) du même besoin, pour quand il n'y a pas le temps d'une séance complète (`app/boostContent.js`).
+   - **📅 Entretien** — renvoie vers ton lien Calendly pour un vrai rendez-vous de coaching en visio (`CALENDLY_URL` dans `app/config.js`).
+   - Toujours disponibles en dessous : renvoi vers tes ressources existantes (podcast...), et un rappel simple si ce n'est pas le moment.
+5. **Onglet Actualités** — retraites, ateliers, lives : gère ce contenu directement dans la table `news_posts` via le Table Editor Supabase, sans toucher au code.
+6. **Historique** — 14 derniers jours, score de tension, besoin détecté chaque jour.
 
 ## Architecture (pensée pour évoluer vers un produit commercialisable)
 

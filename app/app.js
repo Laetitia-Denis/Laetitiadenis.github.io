@@ -2,7 +2,15 @@ import { isConfigured, loadError } from "./supabaseClient.js";
 import { localAdapter } from "./localAdapter.js";
 import { supabaseAdapter } from "./supabaseAdapter.js";
 import { computeAssessment, MOOD_TAGS } from "./needsEngine.js";
-import { NEED_LABELS, HYPNOSIS_CATEGORY_LABELS, EXTERNAL_RESOURCES } from "./config.js";
+import { NEED_LABELS, HYPNOSIS_CATEGORY_LABELS, EXTERNAL_RESOURCES, CALENDLY_URL } from "./config.js";
+import { pickMantra } from "./mantras.js";
+import { boostFor } from "./boostContent.js";
+
+const SUPPORT_MODES = [
+  { key: "audio", icon: "🎧", label: "Audio guidé" },
+  { key: "boost", icon: "⚡", label: "Coup de boost" },
+  { key: "rdv", icon: "📅", label: "Entretien" },
+];
 
 const el = document.getElementById("app");
 
@@ -22,6 +30,9 @@ const state = {
   lastAssessment: null,
   hypnosisSessions: [],
   activeHypnosisCategory: null,
+  supportMode: "audio", // audio | boost | rdv
+  newsPosts: [],
+  newsLoaded: false,
   authError: "",
   authMessage: "",
   busy: false,
@@ -253,9 +264,10 @@ function render() {
 function renderBrand() {
   return `
     <div class="brand">
-      <h1>Dénoue ✨</h1>
+      <h1>Dénoue <span class="sparkle">✨</span></h1>
       <div class="tagline">Ton rituel quotidien pour y voir plus clair</div>
-      ${useLocal ? `<div style="margin-top:10px;"><span class="badge">Mode démo locale — données sur cet appareil</span></div>` : ""}
+      <div class="divider"></div>
+      ${useLocal ? `<div><span class="badge">Mode démo locale — données sur cet appareil</span></div>` : ""}
     </div>
   `;
 }
@@ -275,6 +287,7 @@ function renderAuthLocal() {
       <div class="card">
         <span class="badge">Mode démo locale</span>
         <h2 style="margin-top:10px;">Essaie l'app tout de suite</h2>
+        <div class="divider-left"></div>
         <p class="muted" style="margin-bottom:16px;">${reasonNote}</p>
         <form id="demo-form">
           <label>Ton prénom (facultatif)</label>
@@ -294,6 +307,7 @@ function renderAuthSupabase() {
       ${renderBrand()}
       <div class="card">
         <h2>${isSignup ? "Créer ton espace" : "Content de te revoir"}</h2>
+        <div class="divider-left"></div>
         <p class="muted" style="margin-bottom:16px;">${isSignup ? "Un compte pour retrouver ton suivi partout." : "Connecte-toi pour continuer ton rituel."}</p>
         <form id="auth-form">
           <label>Email</label>
@@ -330,7 +344,8 @@ function attachAuthListeners() {
 function renderTabs() {
   const tabs = [
     { key: "checkin", label: "Aujourd'hui" },
-    { key: "hypnosis", label: "Hypnose" },
+    { key: "hypnosis", label: "Soutien" },
+    { key: "news", label: "Actualités" },
     { key: "history", label: "Historique" },
   ];
   return `
@@ -351,8 +366,9 @@ function attachGlobalListeners() {
     btn.addEventListener("click", async () => {
       const tab = btn.dataset.tab;
       if (tab === "signout") return handleSignOut();
-      if (tab === "hypnosis") return loadHypnosisSessions(state.lastAssessment?.hypnosisCategory || null);
+      if (tab === "hypnosis") return loadHypnosisSessions(state.lastAssessment?.hypnosisCategory || "confiance");
       if (tab === "history") return loadHistoryView();
+      if (tab === "news") return loadNewsView();
       state.view = tab;
       render();
     });
@@ -364,15 +380,36 @@ async function loadHistoryView() {
   render();
 }
 
+async function loadNewsView() {
+  state.view = "news";
+  if (!state.newsLoaded) {
+    state.newsPosts = await adapter.fetchNews();
+    state.newsLoaded = true;
+  }
+  render();
+}
+
 function renderActiveView() {
   if (state.view === "hypnosis") return renderHypnosis();
   if (state.view === "history") return renderHistory();
+  if (state.view === "news") return renderNews();
   return renderCheckin();
 }
 
 // ---------------------------------------------------------------
 // CHECK-IN VIEW
 // ---------------------------------------------------------------
+function renderMantraCard(moodTags) {
+  if (!moodTags || !moodTags.length) return "";
+  const { text } = pickMantra(moodTags, todayStr());
+  return `
+    <div class="mantra-card" style="border-radius:12px;padding:16px;margin-top:14px;">
+      <div class="mantra-label">Ton mantra du jour</div>
+      <div class="mantra-text">"${text}"</div>
+    </div>
+  `;
+}
+
 function renderCheckin() {
   const f = state.form;
   return `
@@ -380,8 +417,9 @@ function renderCheckin() {
     <div class="card">
       <h2>Check-in du jour</h2>
       <p class="muted">${new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</p>
+      <div class="divider-left"></div>
       <form id="checkin-form">
-        <h3 style="margin-top:20px;">Humeur</h3>
+        <h3>Humeur</h3>
         <label>Comment tu te sens, globalement <span class="range-value" id="mood-val">${f.mood_score}</span>/10</label>
         <input type="range" min="1" max="10" name="mood_score" value="${f.mood_score}" />
 
@@ -392,6 +430,7 @@ function renderCheckin() {
               `<div class="chip ${f.mood_tags.includes(tag) ? "selected" : ""}" data-tag="${tag}">${tag}</div>`
           ).join("")}
         </div>
+        ${renderMantraCard(f.mood_tags)}
 
         <label>Niveau d'énergie <span class="range-value" id="energy-val">${f.energy_level}</span>/10</label>
         <input type="range" min="1" max="10" name="energy_level" value="${f.energy_level}" />
@@ -526,31 +565,27 @@ function attachCheckinListeners() {
 // HYPNOSIS VIEW
 // ---------------------------------------------------------------
 function renderHypnosis() {
-  const category = state.activeHypnosisCategory;
-  const categoryLabel = category ? HYPNOSIS_CATEGORY_LABELS[category] : "Toutes catégories";
+  const category = state.activeHypnosisCategory || "confiance";
+  const categoryLabel = HYPNOSIS_CATEGORY_LABELS[category] || "Ancrage général";
   const resources = EXTERNAL_RESOURCES.filter((r) => !category || r.category === category || r.category === "general");
 
   return `
     <div class="card">
       <span class="badge">${categoryLabel}</span>
-      <h2 style="margin-top:10px;">Ta séance guidée</h2>
-      <p class="muted">Trois façons de faire, choisis ce qui te convient maintenant.</p>
+      <h2 style="margin-top:10px;">De quoi as-tu besoin maintenant ?</h2>
+      <div class="divider-left"></div>
+      <div class="mode-cards">
+        ${SUPPORT_MODES.map(
+          (m) => `
+          <div class="mode-card ${state.supportMode === m.key ? "active" : ""}" data-mode="${m.key}">
+            <span class="mode-icon">${m.icon}</span>
+            <span class="mode-label">${m.label}</span>
+          </div>`
+        ).join("")}
+      </div>
     </div>
 
-    ${
-      state.hypnosisSessions.length
-        ? state.hypnosisSessions
-            .map(
-              (s) => `
-      <div class="card">
-        <h3>Script intégré — ${s.title} <span class="muted">(${s.duration_min} min)</span></h3>
-        <div class="script-text">${s.script_text}</div>
-        <button class="btn-primary btn-block" data-done="${s.id}">J'ai terminé la séance</button>
-      </div>`
-            )
-            .join("")
-        : `<div class="card"><p class="muted">Aucun script pour l'instant. Lance un check-in pour qu'une catégorie te soit proposée.</p></div>`
-    }
+    ${renderSupportModeContent(category)}
 
     <div class="card">
       <h3>Tes ressources existantes</h3>
@@ -565,9 +600,64 @@ function renderHypnosis() {
   `;
 }
 
+function renderSupportModeContent(category) {
+  if (state.supportMode === "boost") {
+    const b = boostFor(category);
+    return `
+      <div class="card">
+        <h3>${b.title} <span class="muted">(${b.duration_min} min)</span></h3>
+        <div class="script-text">${b.text}</div>
+        <button class="btn-primary btn-block" id="boost-done">C'est fait, merci</button>
+      </div>
+    `;
+  }
+
+  if (state.supportMode === "rdv") {
+    const calendlyReady = CALENDLY_URL && !CALENDLY_URL.startsWith("REMPLACE_MOI");
+    return `
+      <div class="card">
+        <h3>Un vrai échange, en visio</h3>
+        <p>Parfois, la meilleure séance, c'est d'en parler directement. Réserve un rendez-vous de coaching en visio avec moi.</p>
+        ${
+          calendlyReady
+            ? `<a class="btn-primary btn-block" id="calendly-link" href="${CALENDLY_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:14px;">Réserver un rendez-vous</a>`
+            : `<p class="muted" style="margin-top:10px;">Lien Calendly à configurer dans <code>app/config.js</code> (CALENDLY_URL).</p>`
+        }
+      </div>
+    `;
+  }
+
+  // mode "audio" par défaut
+  return state.hypnosisSessions.length
+    ? state.hypnosisSessions
+        .map(
+          (s) => `
+      <div class="card">
+        <h3>${s.title} <span class="muted">(${s.duration_min} min)</span></h3>
+        <div class="script-text">${s.script_text}</div>
+        <button class="btn-primary btn-block" data-done="${s.id}">J'ai terminé la séance</button>
+      </div>`
+        )
+        .join("")
+    : `<div class="card"><p class="muted">Aucun script pour l'instant. Lance un check-in pour qu'une catégorie te soit proposée.</p></div>`;
+}
+
 function attachHypnosisListeners() {
   el.querySelectorAll("[data-done]").forEach((btn) => {
     btn.addEventListener("click", () => handleSessionDone(btn.dataset.done));
+  });
+  el.querySelectorAll("[data-mode]").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.supportMode = card.dataset.mode;
+      render();
+    });
+  });
+  document.getElementById("boost-done")?.addEventListener("click", async () => {
+    await logSession(null, "boost");
+    alert("Bravo, un petit geste qui compte. 🤍");
+  });
+  document.getElementById("calendly-link")?.addEventListener("click", () => {
+    logSession(null, "rdv");
   });
   document.getElementById("snooze-btn")?.addEventListener("click", handleSnooze);
 }
@@ -582,6 +672,7 @@ function renderHistory() {
   return `
     <div class="card">
       <h2>Tes 14 derniers jours</h2>
+      <div class="divider-left"></div>
       ${state.recentEntries
         .map(
           (e) => `
@@ -595,6 +686,34 @@ function renderHistory() {
       `
         )
         .join("")}
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------
+// NEWS VIEW
+// ---------------------------------------------------------------
+function renderNews() {
+  return `
+    <div class="card">
+      <h2>Actualités</h2>
+      <p class="muted">Retraites, ateliers, lives — ce qui se prépare.</p>
+      <div class="divider-left"></div>
+      ${
+        state.newsPosts.length
+          ? state.newsPosts
+              .map(
+                (n) => `
+        <div class="news-item">
+          ${n.event_date ? `<div class="news-date">${new Date(n.event_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</div>` : ""}
+          <h3>${n.title}</h3>
+          <p style="margin-top:6px;">${n.body}</p>
+          ${n.link_url ? `<a class="resource-link" href="${n.link_url}" target="_blank" rel="noopener" style="margin-top:10px;">En savoir plus →</a>` : ""}
+        </div>`
+              )
+              .join("")
+          : `<p class="muted">Aucune actualité pour le moment.</p>`
+      }
     </div>
   `;
 }

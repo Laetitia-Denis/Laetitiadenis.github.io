@@ -26,7 +26,14 @@ Ouvre `app/config.js` et remplace :
 ```js
 export const SUPABASE_URL = "https://xxxxx.supabase.co";
 export const SUPABASE_ANON_KEY = "eyJ...";
+export const CALENDLY_URL = "https://calendly.com/ton-lien";
 ```
+
+`CALENDLY_URL` est le lien vers ta page de prise de rendez-vous — il alimente le bouton "Réserver un rendez-vous" de l'onglet Soutien. Sans lien Calendly, ce n'est pas bloquant : le bouton reste simplement masqué.
+
+### Publier une actualité (retraite, atelier, live)
+
+Aucun code à toucher : va dans **Table Editor → news_posts**, clique **Insert row**, remplis `title`, `body`, et optionnellement `event_date` (date de l'événement) et `link_url` (lien d'inscription). Elle apparaît immédiatement dans l'onglet Actualités de l'app. Supprime la ligne d'exemple fournie par défaut.
 
 Recommandé, une fois que ça marche : active la confirmation d'email dans **Authentication → Providers → Email** si tu veux sécuriser les inscriptions (facultatif pour un usage solo).
 

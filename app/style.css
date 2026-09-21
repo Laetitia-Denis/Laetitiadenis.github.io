@@ -1,9 +1,10 @@
 :root {
-  --bg: #21303f;
+  --bg: #1e2b39;
   --bg-card: #2a3c4e;
-  --bg-input: #1a2733;
+  --bg-input: #19242f;
   --cream: #f3e6de;
   --gold: #cfa45a;
+  --gold-soft: #e2c48a;
   --terracotta: #c24a4e;
   --terracotta-dark: #a83e41;
   --green: #6b9e78;
@@ -16,59 +17,100 @@
   box-sizing: border-box;
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     sans-serif;
-  background: var(--bg);
   color: var(--cream);
   min-height: 100vh;
   line-height: 1.6;
+  background:
+    radial-gradient(circle at 12% -6%, rgba(207, 164, 90, 0.16), transparent 42%),
+    radial-gradient(circle at 92% 8%, rgba(194, 74, 78, 0.14), transparent 40%),
+    radial-gradient(circle at 50% 110%, rgba(207, 164, 90, 0.08), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
 #app {
   max-width: 640px;
   margin: 0 auto;
-  padding: 24px 20px 80px;
+  padding: 32px 20px 80px;
 }
 
 .brand {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+}
+
+.brand .sparkle {
+  display: inline-block;
+  animation: sparkle-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.75; }
 }
 
 .brand h1 {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: "Fraunces", "Inter", serif;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: #fff;
 }
 
 .brand .tagline {
-  color: var(--gold);
-  font-size: 13px;
-  margin-top: 4px;
+  color: var(--gold-soft);
+  font-size: 13.5px;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.divider {
+  width: 90px;
+  height: 2px;
+  margin: 16px auto;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  border-radius: 2px;
+}
+
+.divider-left {
+  width: 44px;
+  height: 2px;
+  margin: 2px 0 16px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  border-radius: 2px;
 }
 
 .card {
-  background: var(--bg-card);
+  position: relative;
+  background: linear-gradient(160deg, rgba(207, 164, 90, 0.05), rgba(255, 255, 255, 0.015)), var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px;
+  border-radius: 18px;
+  padding: 24px;
   margin-bottom: 18px;
+  box-shadow: 0 14px 34px -18px rgba(0, 0, 0, 0.55);
 }
 
 h2 {
-  font-size: 18px;
-  font-weight: 700;
+  font-family: "Fraunces", "Inter", serif;
+  font-size: 20px;
+  font-weight: 600;
   color: #fff;
   margin-bottom: 6px;
 }
 
 h3 {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--gold);
-  margin-bottom: 10px;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
 }
 
 p {
@@ -102,11 +144,19 @@ select {
   width: 100%;
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 12px 14px;
   color: #fff;
   font-size: 15px;
   font-family: inherit;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(207, 164, 90, 0.15);
 }
 
 textarea {
@@ -117,14 +167,6 @@ textarea {
 input[type="range"] {
   width: 100%;
   accent-color: var(--gold);
-}
-
-.range-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  opacity: 0.7;
-  margin-top: 4px;
 }
 
 .range-value {
@@ -150,10 +192,11 @@ input[type="range"] {
 }
 
 .chip.selected {
-  background: var(--gold);
+  background: linear-gradient(135deg, var(--gold), var(--gold-soft));
   color: var(--bg);
   border-color: var(--gold);
   font-weight: 600;
+  box-shadow: 0 4px 14px -4px rgba(207, 164, 90, 0.5);
 }
 
 .pill-group {
@@ -169,7 +212,7 @@ button {
   font-family: inherit;
   cursor: pointer;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
   font-size: 14px;
   padding: 11px 18px;
@@ -177,13 +220,15 @@ button {
 }
 
 .btn-primary {
-  background: var(--terracotta);
+  background: linear-gradient(135deg, var(--terracotta), var(--terracotta-dark));
   color: #fff;
   width: 100%;
+  box-shadow: 0 10px 24px -10px rgba(194, 74, 78, 0.6);
 }
 
 .btn-primary:hover {
-  background: var(--terracotta-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -10px rgba(194, 74, 78, 0.75);
 }
 
 .btn-secondary {
@@ -199,7 +244,7 @@ button {
 
 .btn-secondary.active,
 .pill-group button.active {
-  background: var(--gold);
+  background: linear-gradient(135deg, var(--gold), var(--gold-soft));
   color: var(--bg);
   border-color: var(--gold);
 }
@@ -243,15 +288,15 @@ nav.tabs button {
 }
 
 nav.tabs button.active {
-  background: var(--gold);
+  background: linear-gradient(135deg, var(--gold), var(--gold-soft));
   color: var(--bg);
   border-color: var(--gold);
 }
 
 .badge {
   display: inline-block;
-  background: rgba(207, 164, 90, 0.15);
-  color: var(--gold);
+  background: linear-gradient(135deg, rgba(207, 164, 90, 0.2), rgba(194, 74, 78, 0.12));
+  color: var(--gold-soft);
   border: 1px solid rgba(207, 164, 90, 0.4);
   border-radius: 999px;
   padding: 4px 12px;
@@ -262,12 +307,75 @@ nav.tabs button.active {
 }
 
 .need-banner {
-  background: linear-gradient(135deg, rgba(194, 74, 78, 0.18), rgba(207, 164, 90, 0.12));
+  background: linear-gradient(135deg, rgba(194, 74, 78, 0.2), rgba(207, 164, 90, 0.13)), var(--bg-card);
   border: 1px solid rgba(207, 164, 90, 0.35);
 }
 
 .need-banner h2 {
-  color: var(--gold);
+  color: var(--gold-soft);
+}
+
+.mantra-card {
+  background: linear-gradient(135deg, rgba(207, 164, 90, 0.16), rgba(194, 74, 78, 0.08)), var(--bg-card);
+  border: 1px solid rgba(207, 164, 90, 0.3);
+  text-align: center;
+  padding: 22px 20px;
+}
+
+.mantra-card .mantra-label {
+  color: var(--gold-soft);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.mantra-card .mantra-text {
+  font-family: "Fraunces", "Inter", serif;
+  font-style: italic;
+  font-size: 19px;
+  line-height: 1.5;
+  color: #fff;
+  margin-top: 10px;
+}
+
+.mode-cards {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.mode-card {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-card .mode-icon {
+  font-size: 20px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.mode-card .mode-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.mode-card.active {
+  background: linear-gradient(160deg, rgba(207, 164, 90, 0.22), rgba(194, 74, 78, 0.1));
+  border-color: var(--gold);
+  box-shadow: 0 8px 20px -10px rgba(207, 164, 90, 0.5);
+}
+
+.mode-card.active .mode-label {
+  color: var(--gold-soft);
 }
 
 .script-text {
@@ -275,6 +383,28 @@ nav.tabs button.active {
   font-size: 15px;
   line-height: 1.9;
   color: var(--cream);
+}
+
+.news-item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.news-item:last-child {
+  border-bottom: none;
+}
+
+.news-item h3 {
+  color: #fff;
+}
+
+.news-date {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
 }
 
 .history-item {
@@ -337,7 +467,7 @@ nav.tabs button.active {
   padding: 12px 14px;
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--cream);
   text-decoration: none;
   margin-bottom: 8px;
@@ -349,14 +479,11 @@ nav.tabs button.active {
   color: var(--gold);
 }
 
-.top-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 12px;
-}
-
 @media (max-width: 480px) {
   #app {
-    padding: 16px 14px 70px;
+    padding: 20px 14px 70px;
+  }
+  .brand h1 {
+    font-size: 24px;
   }
 }

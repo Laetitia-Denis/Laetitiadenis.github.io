@@ -117,7 +117,7 @@ create table if not exists public.session_logs (
   user_id uuid not null references auth.users (id) on delete cascade,
   hypnosis_session_id uuid references public.hypnosis_sessions (id),
   entry_date date not null default current_date,
-  mode text not null default 'script' check (mode in ('script','ressource_externe','rappel')),
+  mode text not null default 'script' check (mode in ('script','ressource_externe','rappel','boost','rdv')),
   feeling_before int check (feeling_before between 1 and 10),
   feeling_after int check (feeling_after between 1 and 10),
   completed_at timestamptz not null default now()
@@ -129,6 +129,31 @@ create policy "logs_select_own" on public.session_logs
   for select using (auth.uid() = user_id);
 create policy "logs_insert_own" on public.session_logs
   for insert with check (auth.uid() = user_id);
+
+-- ------------------------------------------------------------
+-- NEWS_POSTS : actualités publiques (retraites, ateliers, lives...)
+-- Gère ce contenu directement depuis le Table Editor Supabase,
+-- aucun code à toucher pour publier une nouvelle actualité.
+-- ------------------------------------------------------------
+create table if not exists public.news_posts (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  event_date date,
+  link_url text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.news_posts enable row level security;
+
+create policy "news_public_read" on public.news_posts
+  for select using (true);
+
+insert into public.news_posts (title, body, event_date, link_url) values
+('Exemple — Retraite bien-être (à remplacer)',
+ 'Ceci est un exemple. Modifie ou supprime cette ligne dans le Table Editor Supabase, et ajoute tes vraies actualités (retraites, ateliers, lives) de la même façon — sans toucher au code.',
+ null, null)
+on conflict do nothing;
 
 -- ------------------------------------------------------------
 -- SEED : 5 scripts d'hypnose guidée (un par catégorie de besoin)

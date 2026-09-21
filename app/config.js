@@ -6,6 +6,10 @@
 export const SUPABASE_URL = "REMPLACE_MOI_URL_SUPABASE";
 export const SUPABASE_ANON_KEY = "REMPLACE_MOI_CLE_ANON_SUPABASE";
 
+// Lien vers ta page Calendly, pour la prise de rendez-vous en visio
+// depuis l'onglet Soutien. Exemple : "https://calendly.com/laetitia-denis/coaching"
+export const CALENDLY_URL = "REMPLACE_MOI_LIEN_CALENDLY";
+
 // Ressources externes vers lesquelles l'app peut renvoyer
 // (mode "renvoi vers tes ressources" de la séance d'hypnose).
 // Ajoute une entrée par catégorie de besoin quand tu as le contenu.

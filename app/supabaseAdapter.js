@@ -56,4 +56,13 @@ export const supabaseAdapter = {
   async insertSessionLog(log) {
     return supabase.from("session_logs").insert(log);
   },
+
+  async fetchNews() {
+    const { data } = await supabase
+      .from("news_posts")
+      .select("*")
+      .order("event_date", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false });
+    return data || [];
+  },
 };

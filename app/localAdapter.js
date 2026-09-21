@@ -5,6 +5,7 @@
 // ============================================================
 
 import { HYPNOSIS_CATALOG } from "./hypnosisContent.js";
+import { NEWS_SEED } from "./newsContent.js";
 
 const ENTRIES_KEY = "denoue_local_entries";
 const LOGS_KEY = "denoue_local_logs";
@@ -86,5 +87,9 @@ export const localAdapter = {
     all.push({ id: crypto.randomUUID(), completed_at: new Date().toISOString(), ...log });
     write(LOGS_KEY, all);
     return { error: null };
+  },
+
+  async fetchNews() {
+    return NEWS_SEED;
   },
 };
