@@ -33,7 +33,11 @@ export const CALENDLY_URL = "https://calendly.com/ton-lien";
 
 ### Publier une actualité (retraite, atelier, live)
 
-Aucun code à toucher : va dans **Table Editor → news_posts**, clique **Insert row**, remplis `title`, `body`, et optionnellement `event_date` (date de l'événement) et `link_url` (lien d'inscription). Elle apparaît immédiatement dans l'onglet Actualités de l'app. Supprime la ligne d'exemple fournie par défaut.
+Aucun code à toucher : va dans **Table Editor → news_posts**, clique **Insert row**, remplis `title`, `body`, et optionnellement `event_date` (date de l'événement) et `link_url` (lien d'inscription). Elle apparaît immédiatement dans l'onglet Actualités de l'app, et si `event_date` est à venir, en bandeau "Prochain live" sur l'onglet Aujourd'hui. Supprime la ligne d'exemple fournie par défaut.
+
+### Devenir admin (accès à l'onglet Insights)
+
+Une fois inscrite avec ton propre compte dans l'app : va dans **Table Editor → profiles**, trouve ta ligne (ton email), et passe `is_admin` à `true`. L'onglet Insights apparaît alors dans l'app à ta prochaine connexion — lui seul te montre les mots récurrents des journaux (et uniquement ceux des utilisatrices ayant coché la case de consentement à l'inscription).
 
 Recommandé, une fois que ça marche : active la confirmation d'email dans **Authentication → Providers → Email** si tu veux sécuriser les inscriptions (facultatif pour un usage solo).
 

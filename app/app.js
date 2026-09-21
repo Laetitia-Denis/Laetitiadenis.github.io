@@ -1,10 +1,20 @@
 import { isConfigured, loadError } from "./supabaseClient.js";
 import { localAdapter } from "./localAdapter.js";
 import { supabaseAdapter } from "./supabaseAdapter.js";
-import { computeAssessment, MOOD_TAGS } from "./needsEngine.js";
+import { computeAssessment, computeTensionStreak, MOOD_TAGS } from "./needsEngine.js";
 import { NEED_LABELS, HYPNOSIS_CATEGORY_LABELS, EXTERNAL_RESOURCES, CALENDLY_URL } from "./config.js";
 import { pickMantra } from "./mantras.js";
 import { boostFor } from "./boostContent.js";
+import { wordFrequency } from "./insightsEngine.js";
+
+const PREMIUM_NUDGE_STREAK = 3;
+const INSIGHT_CATEGORIES = [
+  { key: "stress", label: "Stress" },
+  { key: "lacher_prise", label: "Lâcher-prise" },
+  { key: "confiance", label: "Confiance" },
+  { key: "sommeil", label: "Sommeil" },
+  { key: "energie", label: "Énergie" },
+];
 
 const SUPPORT_MODES = [
   { key: "audio", icon: "🎧", label: "Audio guidé" },
@@ -33,6 +43,10 @@ const state = {
   supportMode: "audio", // audio | boost | rdv
   newsPosts: [],
   newsLoaded: false,
+  profile: null,
+  tensionStreak: 0,
+  insights: [],
+  insightsLoaded: false,
   authError: "",
   authMessage: "",
   busy: false,
@@ -87,10 +101,18 @@ async function init() {
 
 async function loadData() {
   const userId = state.session.user.id;
-  const entries = await adapter.fetchRecentEntries(userId, 14);
+  const [entries, profile, news] = await Promise.all([
+    adapter.fetchRecentEntries(userId, 14),
+    adapter.fetchProfile(userId),
+    adapter.fetchNews(),
+  ]);
 
   state.recentEntries = entries || [];
+  state.profile = profile || null;
+  state.newsPosts = news || [];
+  state.newsLoaded = true;
   state.todayEntry = state.recentEntries.find((e) => e.entry_date === todayStr()) || null;
+  state.tensionStreak = computeTensionStreak(state.recentEntries);
 
   if (state.todayEntry) {
     state.form = { ...defaultForm(), ...state.todayEntry };
@@ -111,13 +133,14 @@ async function handleAuthSubmit(e) {
   e.preventDefault();
   const email = e.target.email.value.trim();
   const password = e.target.password.value;
+  const contributesToImprovement = e.target.contributesToImprovement?.checked || false;
   state.authError = "";
   state.authMessage = "";
   state.busy = true;
   render();
 
   if (state.authMode === "signup") {
-    const { error } = await adapter.signUp(email, password);
+    const { error } = await adapter.signUp(email, password, { contributes_to_improvement: contributesToImprovement });
     state.busy = false;
     if (error) {
       state.authError = translateAuthError(error.message);
@@ -138,7 +161,8 @@ async function handleAuthSubmit(e) {
 async function handleDemoStart(e) {
   e.preventDefault();
   const displayName = e.target.displayName.value.trim();
-  await adapter.startDemo(displayName);
+  const contributesToImprovement = e.target.contributesToImprovement?.checked || false;
+  await adapter.startDemo(displayName, contributesToImprovement);
 }
 
 function translateAuthError(msg) {
@@ -187,6 +211,7 @@ async function handleCheckinSubmit(e) {
   state.lastAssessment = assessment;
   const others = state.recentEntries.filter((e) => e.entry_date !== todayStr());
   state.recentEntries = [data, ...others];
+  state.tensionStreak = computeTensionStreak(state.recentEntries);
   render();
 }
 
@@ -292,6 +317,7 @@ function renderAuthLocal() {
         <form id="demo-form">
           <label>Ton prénom (facultatif)</label>
           <input type="text" name="displayName" placeholder="Laëtitia" />
+          ${renderConsentCheckbox()}
           <button type="submit" class="btn-primary btn-block">Commencer en local</button>
         </form>
       </div>
@@ -314,6 +340,7 @@ function renderAuthSupabase() {
           <input type="email" name="email" required autocomplete="email" />
           <label>Mot de passe</label>
           <input type="password" name="password" required minlength="6" autocomplete="${isSignup ? "new-password" : "current-password"}" />
+          ${isSignup ? renderConsentCheckbox() : ""}
           ${state.authError ? `<div class="error-text">${state.authError}</div>` : ""}
           ${state.authMessage ? `<div class="success-text">${state.authMessage}</div>` : ""}
           <button type="submit" class="btn-primary btn-block" ${state.busy ? "disabled" : ""}>
@@ -327,6 +354,15 @@ function renderAuthSupabase() {
         </div>
       </div>
     </div>
+  `;
+}
+
+function renderConsentCheckbox() {
+  return `
+    <label style="display:flex;align-items:flex-start;gap:10px;font-weight:400;font-size:13px;margin-top:16px;cursor:pointer;">
+      <input type="checkbox" name="contributesToImprovement" style="width:auto;margin-top:3px;accent-color:var(--gold);" />
+      <span>J'accepte de participer à l'amélioration de l'application : mes mots (journal), une fois anonymisés, pourront aider à créer de nouveaux contenus (scripts, coups de boost). Facultatif, modifiable à tout moment.</span>
+    </label>
   `;
 }
 
@@ -348,6 +384,7 @@ function renderTabs() {
     { key: "news", label: "Actualités" },
     { key: "history", label: "Historique" },
   ];
+  if (state.profile?.is_admin) tabs.push({ key: "insights", label: "Insights" });
   return `
     <nav class="tabs">
       ${tabs
@@ -369,6 +406,7 @@ function attachGlobalListeners() {
       if (tab === "hypnosis") return loadHypnosisSessions(state.lastAssessment?.hypnosisCategory || "confiance");
       if (tab === "history") return loadHistoryView();
       if (tab === "news") return loadNewsView();
+      if (tab === "insights") return loadInsightsView();
       state.view = tab;
       render();
     });
@@ -389,10 +427,20 @@ async function loadNewsView() {
   render();
 }
 
+async function loadInsightsView() {
+  state.view = "insights";
+  if (!state.insightsLoaded) {
+    state.insights = await adapter.fetchInsights();
+    state.insightsLoaded = true;
+  }
+  render();
+}
+
 function renderActiveView() {
   if (state.view === "hypnosis") return renderHypnosis();
   if (state.view === "history") return renderHistory();
   if (state.view === "news") return renderNews();
+  if (state.view === "insights") return renderInsights();
   return renderCheckin();
 }
 
@@ -410,9 +458,41 @@ function renderMantraCard(moodTags) {
   `;
 }
 
+function renderNextLiveBanner() {
+  const upcoming = (state.newsPosts || [])
+    .filter((n) => n.event_date && n.event_date >= todayStr())
+    .sort((a, b) => (a.event_date < b.event_date ? -1 : 1))[0];
+  if (!upcoming) return "";
+  const daysLeft = Math.round((new Date(upcoming.event_date) - new Date(todayStr())) / 86400000);
+  const when = daysLeft <= 0 ? "aujourd'hui" : daysLeft === 1 ? "demain" : `dans ${daysLeft} jours`;
+  return `
+    <div class="card" style="border-color:rgba(207,164,90,0.4);">
+      <span class="badge">Prochain live — ${when}</span>
+      <h2 style="margin-top:10px;">${upcoming.title}</h2>
+      <p class="muted">${new Date(upcoming.event_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+      ${upcoming.link_url ? `<a class="resource-link" href="${upcoming.link_url}" target="_blank" rel="noopener" style="margin-top:10px;">En savoir plus →</a>` : ""}
+    </div>
+  `;
+}
+
+function renderPremiumNudge() {
+  if (state.tensionStreak < PREMIUM_NUDGE_STREAK) return "";
+  return `
+    <div class="card need-banner">
+      <span class="badge">${state.tensionStreak} jours de tension forte</span>
+      <h2 style="margin-top:10px;">Peut-être temps d'aller plus loin</h2>
+      <div class="divider-left"></div>
+      <p>Une séance ponctuelle aide sur le moment. Mais ${state.tensionStreak} jours de suite à ce niveau, ça mérite un vrai accompagnement — pas juste un audio.</p>
+      <button class="btn-primary btn-block" id="goto-rdv" style="margin-top:14px;">Réserver un temps avec moi</button>
+    </div>
+  `;
+}
+
 function renderCheckin() {
   const f = state.form;
   return `
+    ${renderNextLiveBanner()}
+    ${renderPremiumNudge()}
     ${state.todayEntry ? renderAssessmentBanner() : ""}
     <div class="card">
       <h2>Check-in du jour</h2>
@@ -558,6 +638,11 @@ function attachCheckinListeners() {
 
   document.getElementById("goto-hypnosis")?.addEventListener("click", () => {
     loadHypnosisSessions(state.lastAssessment.hypnosisCategory);
+  });
+
+  document.getElementById("goto-rdv")?.addEventListener("click", () => {
+    state.supportMode = "rdv";
+    loadHypnosisSessions(state.lastAssessment?.hypnosisCategory || "confiance");
   });
 }
 
@@ -716,6 +801,62 @@ function renderNews() {
       }
     </div>
   `;
+}
+
+// ---------------------------------------------------------------
+// INSIGHTS VIEW (admin uniquement)
+// ---------------------------------------------------------------
+function renderInsights() {
+  if (!state.insights.length) {
+    return `
+      <div class="card">
+        <h2>Insights</h2>
+        <div class="divider-left"></div>
+        <p class="muted">Aucun journal exploitable pour l'instant — soit personne n'a encore donné son accord ("participer à l'amélioration"), soit aucun journal n'a encore été rempli.</p>
+      </div>
+    `;
+  }
+
+  const wordsCard = `
+    <div class="card">
+      <h2>Mots récurrents par besoin</h2>
+      <p class="muted">Basé sur ${state.insights.length} entrées de journal, utilisatrices ayant donné leur accord uniquement.</p>
+      <div class="divider-left"></div>
+      ${INSIGHT_CATEGORIES.map((cat) => {
+        const words = wordFrequency(state.insights, cat.key);
+        if (!words.length) return "";
+        return `
+          <h3 style="margin-top:14px;">${cat.label}</h3>
+          <div class="chips" style="margin-top:6px;">
+            ${words.map(([w, count]) => `<div class="chip">${w} <span class="muted">${count}</span></div>`).join("")}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  const excerptsCard = `
+    <div class="card">
+      <h2>Derniers mots, tels quels</h2>
+      <p class="muted">Pour puiser directement dans leurs mots plutôt que les reformuler.</p>
+      <div class="divider-left"></div>
+      ${state.insights
+        .slice(0, 20)
+        .map(
+          (e) => `
+        <div class="history-item" style="align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="history-date">${new Date(e.entry_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} — ${NEED_LABELS[e.primary_need] || e.primary_need || ""}</div>
+            <p style="margin-top:4px;font-size:14px;">"${e.journal_text}"</p>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+
+  return wordsCard + excerptsCard;
 }
 
 init();

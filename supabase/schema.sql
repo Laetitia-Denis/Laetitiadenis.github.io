@@ -11,6 +11,8 @@ create extension if not exists "pgcrypto";
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text,
+  is_admin boolean not null default false,
+  contributes_to_improvement boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -25,18 +27,43 @@ create policy "profiles_update_own" on public.profiles
 create policy "profiles_insert_own" on public.profiles
   for insert with check (auth.uid() = id);
 
--- Création auto du profil à l'inscription
+-- Création auto du profil à l'inscription. Le consentement ("mes mots
+-- anonymisés peuvent améliorer les contenus") est passé à la création
+-- du compte via options.data au signUp, lu ici depuis les métadonnées.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, display_name)
-  values (new.id, split_part(new.email, '@', 1));
+  insert into public.profiles (id, display_name, contributes_to_improvement)
+  values (
+    new.id,
+    split_part(new.email, '@', 1),
+    coalesce((new.raw_user_meta_data->>'contributes_to_improvement')::boolean, false)
+  );
   return new;
 end;
 $$;
+
+-- Fonction utilitaire pour les policies "admin" ci-dessous. security
+-- definer = elle contourne le RLS en interne, donc pas de récursion
+-- ni de blocage quand une policy s'appuie dessus.
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+$$;
+
+-- Te permet (une fois ton propre profil passé en is_admin = true depuis
+-- le Table Editor) de lire les profils des utilisatrices qui ont donné
+-- leur accord, pour la vue Insights.
+create policy "profiles_select_admin" on public.profiles
+  for select using (public.is_admin());
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -89,6 +116,19 @@ create policy "entries_update_own" on public.daily_entries
   for update using (auth.uid() = user_id);
 create policy "entries_delete_own" on public.daily_entries
   for delete using (auth.uid() = user_id);
+
+-- Lecture par toi (is_admin = true) des entrées des utilisatrices qui
+-- ont explicitement accepté de contribuer à l'amélioration des contenus.
+-- Nourrit la vue Insights (mots récurrents par besoin, pour écrire tes
+-- prochains scripts et coups de boost).
+create policy "entries_select_admin_optin" on public.daily_entries
+  for select using (
+    public.is_admin()
+    and exists (
+      select 1 from public.profiles p2
+      where p2.id = daily_entries.user_id and p2.contributes_to_improvement = true
+    )
+  );
 
 -- ------------------------------------------------------------
 -- HYPNOSIS_SESSIONS : catalogue public des séances guidées

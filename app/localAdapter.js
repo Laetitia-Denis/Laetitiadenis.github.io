@@ -42,9 +42,13 @@ export const localAdapter = {
     authListeners.push(cb);
   },
 
-  async startDemo(displayName) {
+  async startDemo(displayName, contributesToImprovement = false) {
     const session = {
-      user: { id: LOCAL_USER_ID, email: displayName ? `${displayName} (local)` : "démo locale" },
+      user: {
+        id: LOCAL_USER_ID,
+        email: displayName ? `${displayName} (local)` : "démo locale",
+        contributes_to_improvement: contributesToImprovement,
+      },
     };
     write(SESSION_KEY, session);
     authListeners.forEach((cb) => cb("SIGNED_IN", session));
@@ -91,5 +95,31 @@ export const localAdapter = {
 
   async fetchNews() {
     return NEWS_SEED;
+  },
+
+  async fetchProfile(userId) {
+    const session = read(SESSION_KEY, null);
+    return {
+      id: userId,
+      display_name: session?.user?.email || "démo",
+      is_admin: true, // seule utilisatrice en mode démo : toujours admin pour prévisualiser Insights
+      contributes_to_improvement: !!session?.user?.contributes_to_improvement,
+    };
+  },
+
+  async fetchInsights() {
+    const session = read(SESSION_KEY, null);
+    if (!session?.user?.contributes_to_improvement) return [];
+    const all = read(ENTRIES_KEY, []);
+    return all
+      .filter((e) => e.user_id === LOCAL_USER_ID && e.journal_text)
+      .sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1))
+      .slice(0, 100)
+      .map((e) => ({
+        journal_text: e.journal_text,
+        primary_need: e.primary_need,
+        hypnosis_category: e.hypnosis_category,
+        entry_date: e.entry_date,
+      }));
   },
 };

@@ -12,8 +12,10 @@ Une app qui t'aide chaque jour à voir clair : elle prend ton humeur, ton sport,
    - **⚡ Coup de boost** — version express (2-3 min) du même besoin, pour quand il n'y a pas le temps d'une séance complète (`app/boostContent.js`).
    - **📅 Entretien** — renvoie vers ton lien Calendly pour un vrai rendez-vous de coaching en visio (`CALENDLY_URL` dans `app/config.js`).
    - Toujours disponibles en dessous : renvoi vers tes ressources existantes (podcast...), et un rappel simple si ce n'est pas le moment.
-5. **Onglet Actualités** — retraites, ateliers, lives : gère ce contenu directement dans la table `news_posts` via le Table Editor Supabase, sans toucher au code.
+5. **Onglet Actualités** — retraites, ateliers, lives : gère ce contenu directement dans la table `news_posts` via le Table Editor Supabase, sans toucher au code. Un événement daté et à venir s'affiche aussi en bandeau "Prochain live" sur l'onglet Aujourd'hui.
 6. **Historique** — 14 derniers jours, score de tension, besoin détecté chaque jour.
+7. **Relance automatique vers ton offre premium** — après 3 jours consécutifs de tension forte, un bandeau propose directement de réserver un vrai rendez-vous plutôt qu'une nouvelle séance seule (`computeTensionStreak` dans `app/needsEngine.js`, seuil réglable).
+8. **Onglet Insights (toi uniquement)** — mots récurrents par besoin + derniers extraits de journal, tels quels, pour nourrir tes prochains scripts et coups de boost. Visible seulement si ton profil est marqué `is_admin`, et n'agrège que les journaux des utilisatrices ayant explicitement accepté (case à cocher à l'inscription).
 
 ## Architecture (pensée pour évoluer vers un produit commercialisable)
 
@@ -44,9 +46,9 @@ Ce qui existe déjà tient la route pour plusieurs centaines d'utilisatrices san
 |---|---|---|
 | Paiement (Stripe) | Facturer un abonnement | Moyen — Stripe Checkout + webhook Supabase |
 | Onboarding guidé | Convertir une visiteuse en utilisatrice active | Faible |
-| Notifications (email/push) | Rappel quotidien du check-in, rétention | Moyen |
-| Espace admin léger | Voir combien d'utilisatrices, ajouter des scripts | Faible |
-| RGPD (CGU, export/suppression des données) | Obligatoire pour vendre en Europe | Faible mais indispensable |
+| **Email automatique sur le nudge premium** | Le bandeau "tension forte" existe dans l'app, mais si l'utilisatrice ne l'ouvre pas ce jour-là, rien ne la relance par email. Prochaine brique naturelle : webhook Supabase → Make (déjà connecté) → email personnalisé | Moyen |
+| Espace admin plus complet | Aujourd'hui l'onglet Insights suffit ; un vrai back-office (gérer les scripts, voir le nombre d'utilisatrices) viendra avec le volume | Moyen |
+| RGPD (CGU, export/suppression des données) | Le consentement à la contribution existe déjà (case à cocher), mais il manque des CGU formelles et un moyen de retirer son consentement ou d'exporter ses données | Faible mais indispensable |
 
 ### Piste de prix (à valider avec un vrai test)
 

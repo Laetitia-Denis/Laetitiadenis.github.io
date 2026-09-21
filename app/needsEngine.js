@@ -71,6 +71,22 @@ export function computeAssessment(entry, recentEntries = []) {
   return { tensionScore, primaryNeed, hypnosisCategory, reasons };
 }
 
+/**
+ * Nombre de jours consécutifs (à partir du plus récent) où la tension
+ * était forte. Sert à détecter qu'une séance ponctuelle ne suffit
+ * probablement plus, et qu'un vrai accompagnement serait plus indiqué.
+ * @param {object[]} entriesDescByDate - entrées triées du plus récent au plus ancien (aujourd'hui inclus)
+ */
+export function computeTensionStreak(entriesDescByDate = []) {
+  let streak = 0;
+  for (const e of entriesDescByDate) {
+    const high = (e.tension_score ?? 0) >= 7 || e.primary_need === "hypnose";
+    if (!high) break;
+    streak++;
+  }
+  return streak;
+}
+
 export const MOOD_TAGS = [
   "sereine",
   "anxieuse",

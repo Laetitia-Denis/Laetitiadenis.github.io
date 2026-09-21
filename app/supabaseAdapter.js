@@ -17,8 +17,8 @@ export const supabaseAdapter = {
     supabase.auth.onAuthStateChange(cb);
   },
 
-  async signUp(email, password) {
-    return supabase.auth.signUp({ email, password });
+  async signUp(email, password, meta = {}) {
+    return supabase.auth.signUp({ email, password, options: { data: meta } });
   },
 
   async signInWithPassword(email, password) {
@@ -63,6 +63,24 @@ export const supabaseAdapter = {
       .select("*")
       .order("event_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false });
+    return data || [];
+  },
+
+  async fetchProfile(userId) {
+    const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    return data;
+  },
+
+  async fetchInsights() {
+    // La RLS ne renvoie que tes entrées + celles des utilisatrices
+    // qui ont explicitement accepté de contribuer (policy "entries_select_admin_optin").
+    const { data } = await supabase
+      .from("daily_entries")
+      .select("journal_text, primary_need, hypnosis_category, entry_date")
+      .not("journal_text", "is", null)
+      .neq("journal_text", "")
+      .order("entry_date", { ascending: false })
+      .limit(200);
     return data || [];
   },
 };
