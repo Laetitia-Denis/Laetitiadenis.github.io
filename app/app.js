@@ -1,8 +1,16 @@
-import { supabase, isConfigured, loadError } from "./supabaseClient.js";
+import { isConfigured, loadError } from "./supabaseClient.js";
+import { localAdapter } from "./localAdapter.js";
+import { supabaseAdapter } from "./supabaseAdapter.js";
 import { computeAssessment, MOOD_TAGS } from "./needsEngine.js";
 import { NEED_LABELS, HYPNOSIS_CATEGORY_LABELS, EXTERNAL_RESOURCES } from "./config.js";
 
 const el = document.getElementById("app");
+
+// Sans config Supabase valide, ou si le SDK n'a pas pu être chargé
+// (réseau coupé), on bascule automatiquement en mode démo locale :
+// l'app reste utilisable, les données vivent dans localStorage.
+const useLocal = !isConfigured || !!loadError;
+const adapter = useLocal ? localAdapter : supabaseAdapter;
 
 const state = {
   session: null,
@@ -47,13 +55,8 @@ function defaultForm() {
 // BOOTSTRAP
 // ---------------------------------------------------------------
 async function init() {
-  if (!isConfigured || loadError) {
-    render();
-    return;
-  }
-  const { data } = await supabase.auth.getSession();
-  state.session = data.session;
-  supabase.auth.onAuthStateChange((_event, session) => {
+  state.session = await adapter.getSession();
+  adapter.onAuthChange((_event, session) => {
     state.session = session;
     if (session) {
       state.view = "checkin";
@@ -73,12 +76,7 @@ async function init() {
 
 async function loadData() {
   const userId = state.session.user.id;
-  const { data: entries } = await supabase
-    .from("daily_entries")
-    .select("*")
-    .eq("user_id", userId)
-    .order("entry_date", { ascending: false })
-    .limit(14);
+  const entries = await adapter.fetchRecentEntries(userId, 14);
 
   state.recentEntries = entries || [];
   state.todayEntry = state.recentEntries.find((e) => e.entry_date === todayStr()) || null;
@@ -108,7 +106,7 @@ async function handleAuthSubmit(e) {
   render();
 
   if (state.authMode === "signup") {
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await adapter.signUp(email, password);
     state.busy = false;
     if (error) {
       state.authError = translateAuthError(error.message);
@@ -117,13 +115,19 @@ async function handleAuthSubmit(e) {
       state.authMode = "signin";
     }
   } else {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await adapter.signInWithPassword(email, password);
     state.busy = false;
     if (error) {
       state.authError = translateAuthError(error.message);
     }
   }
   render();
+}
+
+async function handleDemoStart(e) {
+  e.preventDefault();
+  const displayName = e.target.displayName.value.trim();
+  await adapter.startDemo(displayName);
 }
 
 function translateAuthError(msg) {
@@ -134,7 +138,7 @@ function translateAuthError(msg) {
 }
 
 async function handleSignOut() {
-  await supabase.auth.signOut();
+  await adapter.signOut();
 }
 
 // ---------------------------------------------------------------
@@ -158,11 +162,7 @@ async function handleCheckinSubmit(e) {
     hypnosis_category: assessment.hypnosisCategory,
   };
 
-  const { data, error } = await supabase
-    .from("daily_entries")
-    .upsert(payload, { onConflict: "user_id,entry_date" })
-    .select()
-    .single();
+  const { data, error } = await adapter.upsertEntry(payload);
 
   state.busy = false;
 
@@ -194,16 +194,14 @@ function toggleMoodTag(tag) {
 // ---------------------------------------------------------------
 async function loadHypnosisSessions(category) {
   state.activeHypnosisCategory = category;
-  const query = supabase.from("hypnosis_sessions").select("*");
-  const { data } = category ? await query.eq("need_category", category) : await query;
-  state.hypnosisSessions = data || [];
+  state.hypnosisSessions = await adapter.fetchHypnosisSessions(category);
   state.view = "hypnosis";
   render();
 }
 
 async function logSession(sessionId, mode) {
   const userId = state.session.user.id;
-  await supabase.from("session_logs").insert({
+  await adapter.insertSessionLog({
     user_id: userId,
     hypnosis_session_id: sessionId || null,
     entry_date: todayStr(),
@@ -215,7 +213,7 @@ async function handleSessionDone(sessionId) {
   const before = prompt("Comment te sentais-tu avant, de 1 (très mal) à 10 (très bien) ?", "4");
   const after = prompt("Et maintenant, après la séance, de 1 à 10 ?", "7");
   const userId = state.session.user.id;
-  await supabase.from("session_logs").insert({
+  await adapter.insertSessionLog({
     user_id: userId,
     hypnosis_session_id: sessionId,
     entry_date: todayStr(),
@@ -236,23 +234,6 @@ async function handleSnooze() {
 // RENDER
 // ---------------------------------------------------------------
 function render() {
-  if (!isConfigured) {
-    el.innerHTML = renderSetupWarning();
-    return;
-  }
-
-  if (loadError) {
-    el.innerHTML = `
-      <div style="max-width:640px;margin:40px auto;padding:0 20px;">
-        <div class="setup-warning">
-          <h2 style="margin-bottom:10px;">Connexion impossible</h2>
-          <p>Le service n'a pas pu être chargé (réseau coupé ou CDN inaccessible). Vérifie ta connexion et recharge la page.</p>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
   if (!state.session) {
     el.innerHTML = renderAuth();
     attachAuthListeners();
@@ -274,23 +255,39 @@ function renderBrand() {
     <div class="brand">
       <h1>Dénoue ✨</h1>
       <div class="tagline">Ton rituel quotidien pour y voir plus clair</div>
-    </div>
-  `;
-}
-
-function renderSetupWarning() {
-  return `
-    <div id="app-inner" style="max-width:640px;margin:40px auto;padding:0 20px;">
-      <div class="setup-warning">
-        <h2 style="margin-bottom:10px;">Configuration requise</h2>
-        <p>L'app a besoin d'un projet Supabase pour gérer les comptes et sauvegarder tes données entre tes appareils.</p>
-        <p style="margin-top:10px;">Suis les étapes dans <code>/supabase/SETUP.md</code>, puis renseigne <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code> dans <code>/app/config.js</code>.</p>
-      </div>
+      ${useLocal ? `<div style="margin-top:10px;"><span class="badge">Mode démo locale — données sur cet appareil</span></div>` : ""}
     </div>
   `;
 }
 
 function renderAuth() {
+  return useLocal ? renderAuthLocal() : renderAuthSupabase();
+}
+
+function renderAuthLocal() {
+  const reasonNote =
+    isConfigured && loadError
+      ? "Le service en ligne n'a pas pu être joint (réseau coupé) — tu continues en local en attendant."
+      : "Teste tout le rituel sans créer de compte. Tes données restent uniquement dans ce navigateur.";
+  return `
+    <div style="max-width:420px;margin:60px auto 0;padding:0 20px;">
+      ${renderBrand()}
+      <div class="card">
+        <span class="badge">Mode démo locale</span>
+        <h2 style="margin-top:10px;">Essaie l'app tout de suite</h2>
+        <p class="muted" style="margin-bottom:16px;">${reasonNote}</p>
+        <form id="demo-form">
+          <label>Ton prénom (facultatif)</label>
+          <input type="text" name="displayName" placeholder="Laëtitia" />
+          <button type="submit" class="btn-primary btn-block">Commencer en local</button>
+        </form>
+      </div>
+      <p class="muted center" style="margin-top:14px;">Pour activer les comptes et la synchro multi-appareils : <code>/supabase/SETUP.md</code>.</p>
+    </div>
+  `;
+}
+
+function renderAuthSupabase() {
   const isSignup = state.authMode === "signup";
   return `
     <div style="max-width:420px;margin:60px auto 0;padding:0 20px;">
@@ -321,6 +318,7 @@ function renderAuth() {
 
 function attachAuthListeners() {
   document.getElementById("auth-form")?.addEventListener("submit", handleAuthSubmit);
+  document.getElementById("demo-form")?.addEventListener("submit", handleDemoStart);
   document.getElementById("toggle-auth-mode")?.addEventListener("click", () => {
     state.authMode = state.authMode === "signup" ? "signin" : "signup";
     state.authError = "";
@@ -343,7 +341,7 @@ function renderTabs() {
             `<button data-tab="${t.key}" class="${state.view === t.key ? "active" : ""}">${t.label}</button>`
         )
         .join("")}
-      <button data-tab="signout">Déconnexion</button>
+      <button data-tab="signout">${useLocal ? "Quitter" : "Déconnexion"}</button>
     </nav>
   `;
 }

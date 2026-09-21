@@ -20,6 +20,19 @@ Une app qui t'aide chaque jour à voir clair : elle prend ton humeur, ton sport,
 
 Voir `supabase/SETUP.md` pour la mise en route (5 min, gratuit).
 
+## Tester en local, sans Supabase
+
+L'app démarre automatiquement en **mode démo locale** tant que `app/config.js` n'est pas configuré : pas de compte, données stockées uniquement dans le navigateur (`localStorage`). Idéal pour valider le rituel avant de brancher le backend.
+
+```bash
+cd app
+python3 -m http.server 8000
+```
+
+Ouvre `http://localhost:8000`, clique "Commencer en local", et teste tout le parcours (check-in → détection du besoin → séance d'hypnose → historique). Une fois `config.js` renseigné, l'app bascule automatiquement sur Supabase avec vrais comptes et synchro multi-appareils — le mode démo reste disponible en secours si le réseau est coupé.
+
+Note : les données du mode démo ne migrent pas automatiquement vers Supabase (stockages distincts, exprès pour ne jamais mélanger données de test et vraies utilisatrices).
+
 ## Prochaines étapes si tu commercialises
 
 Ce qui existe déjà tient la route pour plusieurs centaines d'utilisatrices sans rien changer. Pour vendre, il manque concrètement :

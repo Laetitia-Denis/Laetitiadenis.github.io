@@ -238,6 +238,8 @@ nav.tabs button {
   color: var(--cream);
   border: 1px solid var(--border);
   white-space: nowrap;
+  padding: 10px 12px;
+  font-size: 13px;
 }
 
 nav.tabs button.active {
