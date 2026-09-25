@@ -1,0 +1,166 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #faf7f2;
+  color: #2c2620;
+}
+
+.login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login form {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  max-width: 320px;
+  width: 100%;
+}
+
+.login input {
+  width: 100%;
+  padding: 0.6rem;
+  margin: 0.75rem 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.login button {
+  width: 100%;
+  padding: 0.6rem;
+  background: #a3785f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.error {
+  color: #b3413f;
+  font-size: 0.9rem;
+}
+
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app h1 {
+  font-size: 1.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  color: #6b6053;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+.agent-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.agent-picker button {
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  border: 1px solid #d8cfc2;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.agent-picker button.active {
+  background: #a3785f;
+  color: white;
+  border-color: #a3785f;
+}
+
+.agent-description {
+  color: #6b6053;
+  margin-bottom: 1rem;
+}
+
+.chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.messages {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  min-height: 300px;
+}
+
+.message {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  max-width: 80%;
+  white-space: pre-wrap;
+}
+
+.message.user {
+  background: #f0e6da;
+  margin-left: auto;
+}
+
+.message.assistant {
+  background: #f4f4f1;
+}
+
+.chat-form {
+  display: flex;
+  border-top: 1px solid #eee;
+  padding: 0.75rem;
+  gap: 0.5rem;
+}
+
+.chat-form textarea {
+  flex: 1;
+  resize: none;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-family: inherit;
+}
+
+.chat-form button {
+  padding: 0 1.2rem;
+  border-radius: 8px;
+  border: none;
+  background: #a3785f;
+  color: white;
+  cursor: pointer;
+}
+
+.chat-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: #b3413f;
+}
